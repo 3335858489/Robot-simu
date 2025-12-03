@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>dummy-ros2_description</name>
+  <version>0.0.0</version>
+  <description>The dummy-ros2_description package</description>
+  <maintainer email="xin.li@switchpi.com">Muzixiaowen</maintainer>
+  <license>TODO: License declaration</license>
+
+  <!-- 原有依赖 -->
+  <depend>xacro</depend>
+  <depend>rviz2</depend>
+  <depend>robot_state_publisher</depend>
+  <depend>joint_state_publisher</depend>
+  <depend>joint_state_publisher_gui</depend>
+
+  <!-- ==================== 新增 Gazebo 相关依赖 ==================== -->
+  <depend>gazebo_ros</depend>
+  <depend>gazebo_ros2_control</depend>
+  
+  <!-- ==================== 新增 ROS2 Control 依赖 ==================== -->
+  <depend>controller_manager</depend>
+  <depend>joint_trajectory_controller</depend>
+  <depend>joint_state_broadcaster</depend>
+  <depend>ros2_control</depend>
+  <depend>ros2_controllers</depend>
+
+  <!-- 测试依赖 -->
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
