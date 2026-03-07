@@ -7,7 +7,7 @@ source /opt/ros/humble/setup.bash
 ros2 launch dummy-ros2_description gazebo.launch.py
 
 
-终端3：（控制器）
+终端2：（控制器）
 source ~/dummy_ws/install/setup.bash
 # 列出控制器
 ros2 control list_controllers
@@ -29,13 +29,190 @@ ros2 action send_goal /arm_controller/follow_joint_trajectory control_msgs/actio
   }
 }" --feedback
 
+终端3：障碍物/将障碍物同步到 MoveIt
+cd ~/dummy_ws
+source install/setup.bash
 
-终端3：（Rviz）
+ros2 run gazebo_ros spawn_entity.py \
+    -file src/dummy-ros2_description/models/obstacle_box/model.sdf \
+    -entity obstacle_box \
+    -x 0.15 -y 0.05 -z 0.12
+
+
+python3 src/dummy-ros2_description/set_obstacle.py
+
+终端4：（Rviz）
 cd ~/dummy_ws
 colcon build
 source install/setup.bash
 ros2 launch dummy_moveit_config demo.launch.py
 
-source ~/dummy_ws/install/setup. bash
+终端 5：运行碰撞检测与重规划脚本
+cd ~/dummy_ws
+source install/setup.bash
+
+python3 src/dummy-ros2_description/collision_replanner.py
+
+
+
+说明：
+参数说明
+参数	值	说明
+障碍物尺寸	8cm × 8cm × 10cm	小方块
+障碍物位置	(0.3, 0.0, 0.05)	机械臂前方 30cm
+安全距离	5cm	                机械臂与障碍物最小距离
+障碍物颜色	红色	                                    Gazebo 中显示
+调整障碍物位置
+
+如果需要移动障碍物位置，修改以下两个地方：
+
+
+    spawn_entity 命令中的 -x -y -z 参数
+    set_obstacle.py 中的 position = (x, y, z)
+
+两者要保持一致！
+
+
+
+
+
+
+
+终端1
+cd ~/dummy_ws
+source install/setup.bash
+ros2 launch dummy-ros2_description gazebo.launch.py
+
+终端2
+source ~/dummy_ws/install/setup.bash
+# 列出控制器
+ros2 control list_controllers
+# 如果没有自动加载，手动加载
+ros2 control load_controller --set-state active joint_state_broadcaster
+ros2 control load_controller --set-state active arm_controller
+# 确认都是 active
+ros2 control list_controllers
+# 发送一个简单的关节目标
+ros2 action send_goal /arm_controller/follow_joint_trajectory control_msgs/action/FollowJointTrajectory "{
+  trajectory: {
+    joint_names: [Joint1, Joint2, Joint3, Joint4, Joint5, Joint6],
+    points: [
+      {
+        positions: [0.5, 0.0, 0.0, 0.0, 0.0, 0.0],
+        time_from_start: {sec: 2}
+      }
+    ]
+  }
+}" --feedback
+
+终端3
+source ~/dummy_ws/install/setup.bash
+ros2 run simulink_motor_controller motor_bridge
+
+终端4
+source ~/dummy_ws/install/setup.bash
+ros2 run simulink_motor_controller rviz_visualizer
+
+终端5
+source ~/dummy_ws/install/setup.bash
+ros2 launch dummy_moveit_config demo.launch.py
+# 然后在 RViz 中添加 MarkerArray，topic:  /simulink/visualization_markers
+
+
+终端6(记得要添加by topic 中的marry）
+source ~/dummy_ws/install/setup.bash
+
+# 模拟 Simulink 发送扭矩数据
+ros2 topic pub /simulink/motors/joint1/torque std_msgs/msg/Float64 "data: 15.5" &
+ros2 topic pub /simulink/motors/joint2/torque std_msgs/msg/Float64 "data: -8.3" &
+ros2 topic pub /simulink/motors/joint3/torque std_msgs/msg/Float64 "data: 12.1" &
+ros2 topic pub /simulink/motors/joint4/torque std_msgs/msg/Float64 "data: 5.0" &
+ros2 topic pub /simulink/motors/joint5/torque std_msgs/msg/Float64 "data: -3.2" &
+ros2 topic pub /simulink/motors/joint6/torque std_msgs/msg/Float64 "data: 7.8" &
+
+# 查看聚合的扭矩数据
+ros2 topic echo /simulink/computed_torques
+
+
+
+
+
+
+
+
+# 启动 MATLAB 并自动打开该模型（假设您的 matlab 命令已配置在环境变量中）
+matlab -desktop -r "open('~/ctrl_step_35mini8.slx')"
+顶部菜单栏的 Simulation (仿真) 选项卡中，将模式从 Normal (正常) 下拉切换为 Accelerator (加速)。这样 MATLAB 会在后台把您的电机模型编译成 C 代码运行，速度将大幅提升。
+mex -setup C++
+
+
+
+日期：2026-03-05
+
+[终端1] 启动 Gazebo + 机器人
+cd ~/dummy_ws
+source install/setup.bash
+ros2 launch dummy-ros2_description gazebo.launch.py
+
+[终端2] 启动/检查 ros2_control 控制器 + 发送关节轨迹目标
+source ~/dummy_ws/install/setup.bash
+
+# 查看控制器
+ros2 control list_controllers
+
+# 如未自动加载则手动加载并激活
+ros2 control load_controller --set-state active joint_state_broadcaster
+ros2 control load_controller --set-state active arm_controller
+
+# 确认都为 active
+ros2 control list_controllers
+
+# 发送简单关节目标（示例）
+ros2 action send_goal /arm_controller/follow_joint_trajectory control_msgs/action/FollowJointTrajectory "{
+  trajectory: {
+    joint_names: [Joint1, Joint2, Joint3, Joint4, Joint5, Joint6],
+    points: [
+      { positions: [0.5, 0.0, 0.0, 0.0, 0.0, 0.0], time_from_start: {sec: 2} }
+    ]
+  }
+}" --feedback
+
+[终端3] 启动 Simulink 电机桥接节点
+source ~/dummy_ws/install/setup.bash
+ros2 run simulink_motor_controller motor_bridge
+
+[终端4] 启动 RViz 可视化节点
+source ~/dummy_ws/install/setup.bash
+ros2 run simulink_motor_controller rviz_visualizer
+
+[终端5] 启动 MoveIt RViz demo，并在 RViz 添加 MarkerArray 订阅
+source ~/dummy_ws/install/setup.bash
+ros2 launch dummy_moveit_config demo.launch.py
+# RViz：Add -> MarkerArray，Topic 选 /simulink/visualization_markers
+
+[终端6] 模拟 Simulink 发布各关节扭矩 + 查看聚合结果
+source ~/dummy_ws/install/setup.bash
+
+# 发布各关节扭矩（后台运��）
+ros2 topic pub /simulink/motors/joint1/torque std_msgs/msg/Float64 "data: 15.5" &
+ros2 topic pub /simulink/motors/joint2/torque std_msgs/msg/Float64 "data: -8.3" &
+ros2 topic pub /simulink/motors/joint3/torque std_msgs/msg/Float64 "data: 12.1" &
+ros2 topic pub /simulink/motors/joint4/torque std_msgs/msg/Float64 "data: 5.0" &
+ros2 topic pub /simulink/motors/joint5/torque std_msgs/msg/Float64 "data: -3.2" &
+ros2 topic pub /simulink/motors/joint6/torque std_msgs/msg/Float64 "data: 7.8" &
+
+# 查看聚合扭矩
+ros2 topic echo /simulink/computed_torques
+
+[MATLAB] 打开模型 + 加速仿真设置（可选）
+# 启动 MATLAB 并打开模型
+matlab -desktop -r "open('~/ctrl_step_35mini8.slx')"
+
+# MATLAB 内：Simulation 选项卡 -> 将模式从 Normal 改为 Accelerator
+# （首次使用/需要编译工具链时）
+mex -setup C++
+
+
+
 
 
